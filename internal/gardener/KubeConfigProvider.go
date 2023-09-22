@@ -2,6 +2,7 @@ package gardener
 
 import (
 	"context"
+	"github.com/pkg/errors"
 
 	authenticationv1alpha1 "github.com/gardener/gardener/pkg/apis/authentication/v1alpha1"
 	"github.com/gardener/gardener/pkg/apis/core/v1beta1"
@@ -40,7 +41,7 @@ func NewKubeconfigProvider(
 func (kp KubeconfigProvider) Fetch(shootName string) (string, error) {
 	shoot, err := kp.shootClient.Get(context.Background(), shootName, v1.GetOptions{})
 	if err != nil {
-		return "", err
+		return "", errors.Wrap(err, "failed to get shoot")
 	}
 
 	adminKubeconfigRequest := authenticationv1alpha1.AdminKubeconfigRequest{
@@ -51,7 +52,7 @@ func (kp KubeconfigProvider) Fetch(shootName string) (string, error) {
 
 	err = kp.dynamicKubeconfigAPI.Create(context.Background(), shoot, &adminKubeconfigRequest)
 	if err != nil {
-		return "", err
+		return "", errors.Wrap(err, "failed to create AdminKubeconfigRequest")
 	}
 
 	return string(adminKubeconfigRequest.Status.Kubeconfig), nil
