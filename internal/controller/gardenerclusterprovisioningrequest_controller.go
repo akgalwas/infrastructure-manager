@@ -18,13 +18,15 @@ package controller
 
 import (
 	"context"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	infrastructuremanagerv1 "github.com/kyma-project/infrastructure-manager/api/v1"
+	imv1 "github.com/kyma-project/infrastructure-manager/api/v1"
 )
 
 // GardenerClusterProvisioningRequestReconciler reconciles a GardenerClusterProvisioningRequest object
@@ -57,6 +59,10 @@ func (r *GardenerClusterProvisioningRequestReconciler) Reconcile(ctx context.Con
 // SetupWithManager sets up the controller with the Manager.
 func (r *GardenerClusterProvisioningRequestReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&infrastructuremanagerv1.GardenerClusterProvisioningRequest{}).
+		For(&imv1.GardenerClusterProvisioningRequest{}, builder.WithPredicates(predicate.Or(
+			predicate.LabelChangedPredicate{},
+			predicate.AnnotationChangedPredicate{},
+			predicate.GenerationChangedPredicate{}),
+		)).
 		Complete(r)
 }
