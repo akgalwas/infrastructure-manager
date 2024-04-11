@@ -24,14 +24,16 @@ import (
 
 	"github.com/gardener/gardener/pkg/apis/core/v1beta1"
 	gardener_apis "github.com/gardener/gardener/pkg/client/core/clientset/versioned/typed/core/v1beta1"
-	infrastructuremanagerv1 "github.com/kyma-project/infrastructure-manager/api/v1"
-	"github.com/kyma-project/infrastructure-manager/internal/controller"
-	"github.com/kyma-project/infrastructure-manager/internal/controller/metrics"
-	"github.com/kyma-project/infrastructure-manager/internal/gardener"
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+
+	infrastructuremanagerv1 "github.com/kyma-project/infrastructure-manager/api/v1"
+	"github.com/kyma-project/infrastructure-manager/internal/controller"
+	"github.com/kyma-project/infrastructure-manager/internal/controller/metrics"
+	"github.com/kyma-project/infrastructure-manager/internal/gardener"
+
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
@@ -124,6 +126,13 @@ func main() {
 	metrics := metrics.NewMetrics()
 	if err = (controller.NewGardenerClusterController(mgr, kubeconfigProvider, logger, rotationPeriod, minimalRotationTimeRatio, metrics)).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "GardenerCluster")
+		os.Exit(1)
+	}
+	if err = (&controller.GardenerClusterProvisioningRequestReconciler{
+		Client: mgr.GetClient(),
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "GardenerClusterProvisioningRequest")
 		os.Exit(1)
 	}
 	//+kubebuilder:scaffold:builder
