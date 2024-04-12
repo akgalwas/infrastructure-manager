@@ -46,7 +46,8 @@ help: ## Display this help.
 
 .PHONY: manifests
 manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
-	$(CONTROLLER_GEN) rbac:roleName=infrastructure-manager-role crd webhook paths="./..." output:crd:artifacts:config=config/crd/bases
+	# TODO: allowDangerousTypes=true is added only for the sake of PoC. Either remove it or carefully evaluate it before productive usage
+	$(CONTROLLER_GEN) rbac:roleName=infrastructure-manager-role crd:allowDangerousTypes=true webhook paths="./..." output:crd:artifacts:config=config/crd/bases
 
 .PHONY: generate
 generate: controller-gen ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.

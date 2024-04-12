@@ -131,6 +131,7 @@ func main() {
 	if err = (&controller.GardenerClusterProvisioningRequestReconciler{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
+		Log:    logger,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "GardenerClusterProvisioningRequest")
 		os.Exit(1)

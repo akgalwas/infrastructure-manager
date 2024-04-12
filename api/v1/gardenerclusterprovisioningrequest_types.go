@@ -17,6 +17,7 @@ limitations under the License.
 package v1
 
 import (
+	gardener "github.com/gardener/gardener/pkg/apis/core/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -48,6 +49,7 @@ type GardenerClusterProvisioningRequest struct {
 
 	Spec   GardenerClusterProvisioningRequestSpec   `json:"spec,omitempty"`
 	Status GardenerClusterProvisioningRequestStatus `json:"status,omitempty"`
+	Shoot  gardener.ShootSpec                       `json:"shoot,omitempty"`
 }
 
 //+kubebuilder:object:root=true

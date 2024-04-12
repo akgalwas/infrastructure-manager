@@ -18,6 +18,7 @@ package controller
 
 import (
 	"context"
+	"github.com/go-logr/logr"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
@@ -33,6 +34,7 @@ import (
 type GardenerClusterProvisioningRequestReconciler struct {
 	client.Client
 	Scheme *runtime.Scheme
+	Log    logr.Logger
 }
 
 //+kubebuilder:rbac:groups=infrastructuremanager.kyma-project.io,resources=gardenerclusterprovisioningrequests,verbs=get;list;watch;create;update;patch;delete
@@ -51,6 +53,7 @@ type GardenerClusterProvisioningRequestReconciler struct {
 func (r *GardenerClusterProvisioningRequestReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	_ = log.FromContext(ctx)
 
+	r.Log.Info("Reconciling GardenerClusterProvisioningRequest")
 	// TODO(user): your logic here
 
 	return ctrl.Result{}, nil
