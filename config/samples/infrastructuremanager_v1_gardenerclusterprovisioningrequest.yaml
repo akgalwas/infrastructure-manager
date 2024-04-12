@@ -37,10 +37,10 @@ shoot:
 #    # It follows the structure of the shoot spec (Provider struct from https://github.com/gardener/gardener/blob/master/pkg/apis/core/types_shoot.go)
 #    provider:
 #    type: gcp
-#      # this field is not obligatory
-#      # if not provided the KIM will use HAP to provide secretBindingName
   region: eu-central-1
   seedName: aws-eu5
+  # this field is not obligatory
+  # if not provided the KIM will use HAP to provide secretBindingName
   secretBindingName: "some secret"
   provider:
     type: gcp
