@@ -54,7 +54,14 @@ func (r *GardenerClusterProvisioningRequestReconciler) Reconcile(ctx context.Con
 	_ = log.FromContext(ctx)
 
 	r.Log.Info("Reconciling GardenerClusterProvisioningRequest")
-	// TODO(user): your logic here
+	var provisioningRequest imv1.GardenerClusterProvisioningRequest
+
+	err := r.Get(ctx, req.NamespacedName, &provisioningRequest)
+
+	if err != nil {
+		r.Log.Error(err, "unable to fetch GardenerClusterProvisioningRequest")
+		return ctrl.Result{}, err
+	}
 
 	return ctrl.Result{}, nil
 }
