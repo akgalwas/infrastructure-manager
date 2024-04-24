@@ -18,23 +18,28 @@ package controller
 
 import (
 	"context"
+	"github.com/gardener/gardener/pkg/apis/core/v1beta1"
+	gardener_apis "github.com/gardener/gardener/pkg/client/core/clientset/versioned/typed/core/v1beta1"
 	"github.com/go-logr/logr"
+	"github.com/kyma-project/infrastructure-manager/internal/controller/providers"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
-	"k8s.io/apimachinery/pkg/runtime"
+	imv1 "github.com/kyma-project/infrastructure-manager/api/v1"
+	runtime "k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
-
-	imv1 "github.com/kyma-project/infrastructure-manager/api/v1"
 )
 
 // GardenerClusterProvisioningRequestReconciler reconciles a GardenerClusterProvisioningRequest object
 type GardenerClusterProvisioningRequestReconciler struct {
 	client.Client
-	Scheme *runtime.Scheme
-	Log    logr.Logger
+	Scheme      *runtime.Scheme
+	Log         logr.Logger
+	ShootClient gardener_apis.ShootInterface
+	Enabled     bool
 }
 
 //+kubebuilder:rbac:groups=infrastructuremanager.kyma-project.io,resources=gardenerclusterprovisioningrequests,verbs=get;list;watch;create;update;patch;delete
@@ -53,7 +58,6 @@ type GardenerClusterProvisioningRequestReconciler struct {
 func (r *GardenerClusterProvisioningRequestReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	_ = log.FromContext(ctx)
 
-	r.Log.Info("Reconciling GardenerClusterProvisioningRequest")
 	var provisioningRequest imv1.GardenerClusterProvisioningRequest
 
 	err := r.Get(ctx, req.NamespacedName, &provisioningRequest)
@@ -61,7 +65,31 @@ func (r *GardenerClusterProvisioningRequestReconciler) Reconcile(ctx context.Con
 	if err != nil {
 		r.Log.Error(err, "unable to fetch GardenerClusterProvisioningRequest")
 		return ctrl.Result{}, err
+	} else {
+		r.Log.Info("Reconciling GardenerClusterProvisioningRequest", "Name", provisioningRequest.Name, "Namespace", provisioningRequest.Namespace)
 	}
+
+	shoot := &v1beta1.Shoot{}
+	shoot.Spec = provisioningRequest.Shoot
+	shoot.Name = provisioningRequest.Name
+	shoot.Spec.Provider.ControlPlaneConfig = &runtime.RawExtension{Raw: providers.GetGCPControlPlane()}
+	shoot.Spec.Networking = &v1beta1.Networking{}
+	shoot.Spec.Networking.Nodes = providers.PtrTo("10.180.0.0/16")
+
+	shoot.Spec.Provider.InfrastructureConfig = &runtime.RawExtension{Raw: providers.GetRawGCPInfrastructureConfig()}
+
+	if err != nil {
+		r.Log.Error(err, "unable to map GardenerClusterProvisioningRequest to Shoot")
+		return ctrl.Result{}, err
+	}
+
+	createdShoot, provisioningErr := r.ShootClient.Create(ctx, shoot, v1.CreateOptions{})
+
+	if provisioningErr != nil {
+		r.Log.Error(provisioningErr, "unable to create Shoot")
+		return ctrl.Result{}, provisioningErr
+	}
+	r.Log.Info("Shoot created", "Name", createdShoot.Name, "Namespace", createdShoot.Namespace)
 
 	return ctrl.Result{}, nil
 }

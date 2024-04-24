@@ -18,6 +18,7 @@ package controller
 
 import (
 	"context"
+	"github.com/gardener/gardener/pkg/client/core/clientset/versioned/fake"
 	"path/filepath"
 	"testing"
 	"time"
@@ -86,13 +87,22 @@ var _ = BeforeSuite(func() {
 	setupKubeconfigProviderMock(kubeconfigProviderMock)
 	metrics := metrics.NewMetrics()
 
-	controller := NewGardenerClusterController(mgr, kubeconfigProviderMock, logger, TestKubeconfigRotationPeriod, TestMinimalRotationTimeRatio, metrics)
+	gardenerClusterController := NewGardenerClusterController(mgr, kubeconfigProviderMock, logger, TestKubeconfigRotationPeriod, TestMinimalRotationTimeRatio, metrics)
 
-	Expect(controller).NotTo(BeNil())
+	Expect(gardenerClusterController).NotTo(BeNil())
 
-	err = controller.SetupWithManager(mgr)
+	err = gardenerClusterController.SetupWithManager(mgr)
 	Expect(err).To(BeNil())
 
+	clientset := fake.NewSimpleClientset()
+	shootClient := clientset.CoreV1beta1().Shoots("default")
+	err = (&GardenerClusterProvisioningRequestReconciler{
+		Client:      mgr.GetClient(),
+		Scheme:      mgr.GetScheme(),
+		Log:         logger,
+		ShootClient: shootClient,
+		Enabled:     true,
+	}).SetupWithManager(mgr)
 	//+kubebuilder:scaffold:scheme
 
 	k8sClient, err = client.New(cfg, client.Options{Scheme: scheme.Scheme})

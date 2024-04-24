@@ -18,7 +18,7 @@ package controller
 
 import (
 	"context"
-
+	"github.com/gardener/gardener/pkg/client/core/clientset/versioned/fake"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -31,7 +31,7 @@ import (
 )
 
 var _ = Describe("GardenerClusterProvisioningRequest Controller", func() {
-	Context("When reconciling a resource", func() {
+	Context("When reconciling GardenerClusterProvisioningRequest", func() {
 		const resourceName = "test-resource"
 
 		ctx := context.Background()
@@ -68,9 +68,14 @@ var _ = Describe("GardenerClusterProvisioningRequest Controller", func() {
 		})
 		It("should successfully reconcile the resource", func() {
 			By("Reconciling the created resource")
+
+			clientset := fake.NewSimpleClientset()
+			shootClient := clientset.CoreV1beta1().Shoots("default")
+
 			controllerReconciler := &GardenerClusterProvisioningRequestReconciler{
-				Client: k8sClient,
-				Scheme: k8sClient.Scheme(),
+				Client:      k8sClient,
+				Scheme:      k8sClient.Scheme(),
+				ShootClient: shootClient,
 			}
 
 			_, err := controllerReconciler.Reconcile(ctx, reconcile.Request{

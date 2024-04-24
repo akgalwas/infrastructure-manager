@@ -58,6 +58,7 @@ func init() {
 
 const defaultMinimalRotationTimeRatio = 0.6
 const defaultExpirationTime = 24 * time.Hour
+const defaultProvisioningEnabled = false
 
 func main() {
 	var metricsAddr string
@@ -67,6 +68,7 @@ func main() {
 	var gardenerProjectName string
 	var minimalRotationTimeRatio float64
 	var expirationTime time.Duration
+	var enableProvisioning bool
 
 	flag.StringVar(&metricsAddr, "metrics-bind-address", ":8080", "The address the metric endpoint binds to.")
 	flag.StringVar(&probeAddr, "health-probe-bind-address", ":8081", "The address the probe endpoint binds to.")
@@ -77,6 +79,7 @@ func main() {
 	flag.StringVar(&gardenerProjectName, "gardener-project-name", "gardener-project", "Name of the Gardener project")
 	flag.Float64Var(&minimalRotationTimeRatio, "minimal-rotation-time", defaultMinimalRotationTimeRatio, "The ratio determines what is the minimal time that needs to pass to rotate certificate.")
 	flag.DurationVar(&expirationTime, "kubeconfig-expiration-time", defaultExpirationTime, "Dynamic kubeconfig expiration time")
+	flag.BoolVar(&enableProvisioning, "provisioning-enabled", defaultProvisioningEnabled, "Feature flag for all provisioning functionalities")
 
 	opts := zap.Options{
 		Development: true,
@@ -128,13 +131,18 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "GardenerCluster")
 		os.Exit(1)
 	}
-	if err = (&controller.GardenerClusterProvisioningRequestReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
-		Log:    logger,
-	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "GardenerClusterProvisioningRequest")
-		os.Exit(1)
+
+	if enableProvisioning {
+		gardenerShootClient := setupGardenerShootClient(gardenerKubeconfigPath, gardenerNamespace)
+		if err = (&controller.GardenerClusterProvisioningRequestReconciler{
+			Client:      mgr.GetClient(),
+			Scheme:      mgr.GetScheme(),
+			Log:         logger,
+			ShootClient: gardenerShootClient,
+		}).SetupWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create controller", "controller", "GardenerClusterProvisioningRequest")
+			os.Exit(1)
+		}
 	}
 	//+kubebuilder:scaffold:builder
 
@@ -183,4 +191,22 @@ func setupKubernetesKubeconfigProvider(kubeconfigPath string, namespace string, 
 		dynamicKubeconfigAPI,
 		namespace,
 		int64(expirationTime.Seconds())), nil
+}
+
+// write a function similar to setupKubernetesKubeconfigProvider that will setup GardenerShootClient for CREATE operations on shoots
+
+func setupGardenerShootClient(kubeconfigPath, gardenerNamespace string) gardener_apis.ShootInterface {
+	restConfig, err := gardener.NewRestConfigFromFile(kubeconfigPath)
+	if err != nil {
+		return nil
+	}
+
+	gardenerClientSet, err := gardener_apis.NewForConfig(restConfig)
+	if err != nil {
+		return nil
+	}
+
+	shootClient := gardenerClientSet.Shoots(gardenerNamespace)
+
+	return shootClient
 }
