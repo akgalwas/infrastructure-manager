@@ -54,7 +54,7 @@ func (sm *StateMachine) Run() (State, error) {
 		}
 	}
 
-	return state, nil
+	return state, err
 }
 
 func (sm *StateMachine) getNextState(currentState State) (State, error) {
