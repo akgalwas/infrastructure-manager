@@ -39,7 +39,7 @@ func (sm *StateMachine) Run() (State, error) {
 	err := error(nil)
 
 	for {
-		if state == Finished || state == Postponed {
+		if state == Finished || state == Postponed || state == Unknown {
 			break
 		}
 
