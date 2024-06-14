@@ -1,5 +1,6 @@
 package fsm
 
+//go:generate mockery --name=State
 type State interface {
 	Do() error
 }
@@ -16,6 +17,7 @@ func Immediate(from, to State) Transition {
 	}
 }
 
+//go:generate mockery --name=Predicate
 type Predicate interface {
 	True() (bool, error)
 }
@@ -30,7 +32,7 @@ func (it immediateTransition) Current() State {
 }
 
 func (it immediateTransition) Next() (State, error) {
-	return it.From, nil
+	return it.To, nil
 }
 
 func Conditional(from, to State, predicate Predicate) Transition {
