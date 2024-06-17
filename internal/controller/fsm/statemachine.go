@@ -1,6 +1,7 @@
 package fsm
 
 import (
+	"context"
 	"github.com/pkg/errors"
 	"slices"
 )
@@ -45,32 +46,40 @@ func (sm *StateMachine) AddTransition(transition Transition) *StateMachine {
 	return sm
 }
 
-func (sm *StateMachine) Run() (State, error) {
+func (sm *StateMachine) Run(ctx context.Context) (Result, error) {
 	err := sm.validate()
 
 	if err != nil {
-		return nil, err
+		return ResultConfigurationError, err
 	}
 
 	state := sm.Entry
 
 	for {
-		if state == Finished || state == Postponed || state == Unknown {
-			break
-		}
+		select {
+		case <-ctx.Done():
+			err = ctx.Err()
+			return ResultCancelled, err
+		default:
+			if state == Finished {
+				return ResultFinished, nil
+			}
 
-		err = state.Do()
-		if err != nil {
-			break
-		}
+			if state == Postponed {
+				return ResultPostponed, nil
+			}
 
-		state, err = sm.getNextState(state)
-		if err != nil {
-			break
+			err = state.Do(ctx)
+			if err != nil {
+				return ResultError, err
+			}
+
+			state, err = sm.getNextState(state)
+			if err != nil {
+				return ResultError, nil
+			}
 		}
 	}
-
-	return state, err
 }
 
 func (sm *StateMachine) getNextState(currentState State) (State, error) {
@@ -82,7 +91,7 @@ func (sm *StateMachine) getNextState(currentState State) (State, error) {
 	for _, transition := range transitions {
 		nextState, err := transition.Next()
 		if err != nil {
-			return Error, err
+			return Unknown, err
 		}
 
 		if nextState != Unknown {
@@ -94,6 +103,10 @@ func (sm *StateMachine) getNextState(currentState State) (State, error) {
 }
 
 func (sm *StateMachine) validate() error {
+	if sm.Entry == nil {
+		errors.New("entry state not set")
+	}
+
 	var traversedStaes []State
 
 	exitReached, err := sm.traverseStates(sm.Entry, traversedStaes)

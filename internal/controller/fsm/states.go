@@ -1,14 +1,15 @@
 package fsm
 
+import "context"
+
 var Unknown = SpecialState{}
 var Finished = SpecialState{}
 var Postponed = SpecialState{}
-var Error = SpecialState{}
 
 type SpecialState struct {
 }
 
-func (su SpecialState) Do() error {
+func (su SpecialState) Do(ctx context.Context) error {
 	return nil
 }
 

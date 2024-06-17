@@ -1,8 +1,10 @@
 package fsm
 
 import (
+	"context"
 	"github.com/kyma-project/infrastructure-manager/internal/controller/fsm/mocks"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"testing"
 )
@@ -14,24 +16,24 @@ func TestStateMachine(t *testing.T) {
 		secondState := &mocks.State{}
 		thirdState := &mocks.State{}
 
-		firstState.On("Do").Return(nil)
-		secondState.On("Do").Return(nil)
-		thirdState.On("Do").Return(nil)
+		firstState.On("Do", mock.Anything).Return(nil)
+		secondState.On("Do", mock.Anything).Return(nil)
+		thirdState.On("Do", mock.Anything).Return(nil)
 
 		// when
 		sm := NewStateMachine()
 
-		finalState, err := sm.
+		result, err := sm.
 			RegisterStates(firstState, secondState, thirdState).
 			SetEntry(firstState).
 			AddTransition(Immediate(firstState, secondState)).
 			AddTransition(Immediate(secondState, thirdState)).
 			AddTransition(Immediate(thirdState, Finished)).
-			Run()
+			Run(context.TODO())
 
 		// then
 		require.NoError(t, err)
-		assert.Equal(t, Finished, finalState)
+		assert.Equal(t, ResultFinished, result)
 		firstState.AssertExpectations(t)
 		secondState.AssertExpectations(t)
 		thirdState.AssertExpectations(t)
@@ -47,23 +49,24 @@ func TestStateMachine(t *testing.T) {
 		secondState := &mocks.State{}
 		thirdState := &mocks.State{}
 
-		firstState.On("Do").Return(nil)
-		secondState.On("Do").Return(nil)
-		thirdState.On("Do").Return(nil)
+		firstState.On("Do", mock.Anything).Return(nil)
+		secondState.On("Do", mock.Anything).Return(nil)
+		thirdState.On("Do", mock.Anything).Return(nil)
 
 		// when
 		sm := NewStateMachine()
 
-		_, err := sm.
+		result, err := sm.
 			RegisterStates(firstState, secondState, thirdState).
 			SetEntry(firstState).
 			AddTransition(Immediate(firstState, secondState)).
 			AddTransition(Immediate(secondState, thirdState)).
 			AddTransition(Immediate(thirdState, firstState)).
-			Run()
+			Run(context.Background())
 
 		// then
 		require.Error(t, err)
+		assert.Equal(t, ResultConfigurationError, result)
 	})
 }
 

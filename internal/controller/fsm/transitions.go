@@ -1,9 +1,13 @@
 package fsm
 
+import "context"
+
 //go:generate mockery --name=State
 type State interface {
-	Do() error
+	Do(ctx context.Context) error
 }
+
+type Result string
 
 type Transition interface {
 	Current() State
