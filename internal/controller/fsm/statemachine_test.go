@@ -40,7 +40,41 @@ func TestStateMachine(t *testing.T) {
 	})
 
 	t.Run("Test simple conditional transitions", func(t *testing.T) {
+		// given
+		firstState := &mocks.State{}
+		secondState := &mocks.State{}
+		thirdState := &mocks.State{}
+		fourthState := &mocks.State{}
 
+		alwaysTruePredicate := &mocks.Predicate{}
+		alwaysFalsePredicate := &mocks.Predicate{}
+
+		firstState.On("Do", mock.Anything).Return(nil)
+		secondState.On("Do", mock.Anything).Return(nil)
+		thirdState.On("Do", mock.Anything).Return(nil)
+		alwaysTruePredicate.On("True").Return(true, nil)
+		alwaysFalsePredicate.On("True").Return(false, nil)
+		//when
+		sm := NewStateMachine()
+
+		result, err := sm.
+			RegisterStates(firstState, secondState, thirdState, fourthState).
+			SetEntry(firstState).
+			AddTransition(Conditional(firstState, secondState, alwaysFalsePredicate)).
+			AddTransition(Conditional(firstState, thirdState, alwaysTruePredicate)).
+			AddTransition(Conditional(thirdState, Finished, alwaysTruePredicate)).
+			AddTransition(Conditional(thirdState, fourthState, alwaysFalsePredicate)).
+			AddTransition(Immediate(secondState, Finished)).
+			AddTransition(Immediate(fourthState, Finished)).
+			Run(context.TODO())
+
+		//then
+		require.NoError(t, err)
+		assert.Equal(t, ResultFinished, result)
+		firstState.AssertExpectations(t)
+		secondState.AssertNotCalled(t, "Do")
+		thirdState.AssertExpectations(t)
+		fourthState.AssertNotCalled(t, "Do")
 	})
 
 	t.Run("Detect cycle", func(t *testing.T) {

@@ -104,7 +104,7 @@ func (sm *StateMachine) getNextState(currentState State) (State, error) {
 
 func (sm *StateMachine) validate() error {
 	if sm.Entry == nil {
-		errors.New("entry state not set")
+		return errors.New("entry state not set")
 	}
 
 	var traversedStaes []State
@@ -138,7 +138,7 @@ func (sm *StateMachine) traverseStates(currentState State, traversedStates []Sta
 
 	var exitReached bool
 	for _, transition := range transitions {
-		nextState, err := transition.Next()
+		nextState, err := getNextState(transition)
 		if err != nil {
 			return false, errors.New("transition failed")
 		}
@@ -149,4 +149,23 @@ func (sm *StateMachine) traverseStates(currentState State, traversedStates []Sta
 	}
 
 	return exitReached, nil
+}
+
+func getNextState(transition Transition) (State, error) {
+	switch transition.(type) {
+	case immediateTransition:
+		{
+			imt := transition.(immediateTransition)
+
+			return imt.To, nil
+		}
+	case conditionalTransition:
+		{
+			cct := transition.(conditionalTransition)
+
+			return cct.To, nil
+		}
+	}
+
+	return nil, errors.New("failed to determine next state")
 }
