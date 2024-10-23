@@ -55,10 +55,12 @@ type DNSProviderReplication struct {
 }
 
 func newDNSExtensionConfig(domain, secretName, dnsProviderType string) *DNSExtensionProviderConfig {
+	// We set up the DNS extension configuration with the same settings as in `spec.dns` to have avoid overwriting the extension settings during the migration from Provisioenr to KIM
 	return &DNSExtensionProviderConfig{
-		APIVersion:                    "service.dns.extensions.gardener.cloud/v1alpha1",
-		Kind:                          "DNSConfig",
-		DNSProviderReplication:        &DNSProviderReplication{Enabled: true},
+		APIVersion:             "service.dns.extensions.gardener.cloud/v1alpha1",
+		Kind:                   "DNSConfig",
+		DNSProviderReplication: &DNSProviderReplication{Enabled: true},
+		// This flag will be deprecated at some point: https://github.com/gardener/gardener-extension-shoot-dns-service/issues/220
 		SyncProvidersFromShootSpecDNS: ptr.To(true),
 		Providers: []DNSProvider{
 			{
