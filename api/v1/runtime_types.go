@@ -197,7 +197,19 @@ type Filter struct {
 }
 
 type Ingress struct {
-	Enabled bool `json:"enabled"`
+	Enabled             bool                    `json:"enabled"`
+	StaticIPList        []StaticIPIngressFilter `json:"staticIPList"`
+	WorkerIngressFilter WorkerIngressFilter     `json:"workerIngressFilter"`
+}
+
+type StaticIPIngressFilter struct {
+	NetworkCIDR string `json:"networkCidr"`
+	Policy      string `json:"policy"`
+}
+
+type WorkerIngressFilter struct {
+	Workers []string `json:"workers"`
+	Enabled bool     `json:"enabled"`
 }
 
 type Egress struct {
